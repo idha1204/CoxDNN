@@ -1,7 +1,9 @@
 # Importing packages
+import tensorflow as tf
+from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, Dropout, Input
 from tensorflow.keras.regularizers import l1,l2
-from tensorflow.keras.optimizers import Adadelta, Adam, RMSprop, Nadam
+from tensorflow.keras.optimizers import Adam
 from lifelines.utils import concordance_index
 
 #Model setting
