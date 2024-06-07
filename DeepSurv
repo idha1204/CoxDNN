@@ -1,0 +1,26 @@
+    in_features = x_tr.shape[1]
+    num_nodes = [32, 16, 8]
+    out_features = 1
+    batch_norm = False
+    #batch_norm = True
+    dropout = [0,0.1,0]
+    output_bias = False
+    net = tt.practical.MLPVanilla(in_features, num_nodes, out_features, batch_norm, 
+                                  dropout, activation=torch.nn.ReLU, output_bias=output_bias)   
+    model2 = CoxPH(net, tt.optim.Adam) # No penalty
+    batch_size = 32
+    model2.optimizer.set_lr(0.002)
+    epochs = 2000
+    callbacks = [tt.callbacks.EarlyStopping()]
+    verbose = True
+    log = model2.fit(x_tr, y_train, batch_size, epochs, callbacks, verbose,val_data=val, val_batch_size=batch_size)   
+    _ = model2.compute_baseline_hazards()
+    surv = model2.predict_surv_df(x_te)
+    durations_test=y_te[:, 0]
+    events_test=y_te[:, 1]
+    ev = EvalSurv(surv, durations_test, events_test, censor_surv='km')
+    c_index_DS=ev.concordance_td()  #C-index
+    time_grid = np.linspace(durations_test.min(), durations_test.max(), 100) #t = np.arange(0, max(y_te[:,0]), 0.05)
+    IBS_te_DS=ev.integrated_brier_score(time_grid)   #IBS  
+    c_index2.append(c_index_DS)
+    IBS2.append(IBS_te_DS)
