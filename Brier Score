@@ -1,0 +1,95 @@
+def BS_cox(t, time, status, pred):  # Brier Score
+    df = pd.concat({'time': pd.Series(time.ravel()), 'status': pd.Series(status.ravel()), 'pred': pd.Series(pred.ravel())}, axis=1).sort_values(by=['time'])
+    t, time, status, pred = t.tolist(), df['time'].to_numpy(), df['status'].to_numpy(), df['pred'].to_numpy()   
+    n = time.shape[0]
+
+    # time, status
+    m = len(np.unique(time * status)) - 1
+    unique_res = np.unique(time * status, return_counts=True)
+    yk = np.delete(unique_res[0], 0)
+    dk = np.delete(unique_res[1], 0)
+    Mi = np.empty([n, m], dtype=float)
+    for i in range(n):
+        ts = time[i]
+        for j in range(m):
+            if (yk[j]<=ts):
+                Mi[i, j]=1
+            else: Mi[i,j]=0
+    
+    # time, 1-status
+    m_ = len(np.unique(time * (1-status))) - 1
+    unique_res_ = np.unique(time * (1-status), return_counts=True)
+    yk_ = np.delete(unique_res_[0], 0)
+    dk_ = np.delete(unique_res_[1], 0)
+    Mi_ = np.empty([n, m_], dtype=float)
+    for a in range(n):
+        ts_ = time[a]
+        for b in range(m_):
+            if (yk_[b]<=ts_):
+                Mi_[a,b]=1
+            else: Mi_[a,b]=0
+                
+    #Gt0, Gti0
+    Ak_ = dk_.reshape(m_,1)/(Mi_.T@np.exp(np.zeros([n,1])))
+    logBk_ = np.diag(np.log(1-Ak_+0.0000001).reshape(m_,))
+    logB_ = Mi_@logBk_@np.ones(m_)
+    Gx_ = np.exp(logB_) 
+    Gti0 = Gx_
+    
+    #St0
+    Ak = dk.reshape(m,1)/(Mi.T@np.exp(np.zeros([n,1])))
+    logBk = np.diag(np.log(1-Ak+0.0000001).reshape(m,))
+    logB = Mi@logBk@np.ones(m)
+    Gx = np.exp(logB)
+    
+    #GLt0
+    e_pred = np.exp(pred)
+    haz0k = dk/(Mi.T@e_pred)
+    A = np.diag(haz0k.reshape(m,))
+    Gx1 = Mi@A@np.ones(m)
+    #########################################################################################  
+    Gt0, GLt0, St0, BS0, BSc = [], [], [], [], []
+        
+    if t == None:
+        Gt0, GLt0, St0 = Gx_, Gx1, Gx
+
+    else:
+        for tt in range(len(t)):
+            if t[tt] < np.min(yk_):
+                Gt0.append(1)
+            elif t[tt] >= np.max(yk_):
+                Gt0.append(Gx_[time==np.max(yk_)])
+            else:
+                for idx in np.arange(1,len(time)):
+                    if time[idx-1] <= t[tt] and time[idx] > t[tt]:
+                        Gt0.append(Gx_[idx-1])
+
+            if t[tt] < np.min(yk):
+                GLt0.append(0); St0.append(1)
+            elif t[tt] >= np.max(yk):
+                GLt0.append(Gx1[time==np.max(yk)]); St0.append(Gx[time==np.max(yk)]) 
+            else:
+                for idx in np.arange(1,len(time)):
+                    if time[idx-1] <= t[tt] and time[idx] > t[tt]:
+                        GLt0.append(Gx1[idx-1]), St0.append(Gx[idx-1])
+
+    for ss in range(len(t)):
+        ot = np.where(time > t[ss], 1, 0)
+        wt = (1-ot)*status/Gti0 + ot/Gt0[ss]
+        Stc = np.exp(-GLt0[ss])
+        BS0.append(np.mean(((ot-St0[ss])**2)*wt))
+        BSc.append(np.mean(((ot-Stc**np.exp(pred))**2)*wt))
+    ibs0,ibsc0 = [], []
+        
+    for idx1 in range(len(t)-1):
+        if t == None:
+            pass
+        else:
+            ibs0.append(np.diff(t)[idx1]*((BS0[idx1]+BS0[idx1+1])/2))
+            ibsc0.append(np.diff(t)[idx1]*((BSc[idx1]+BSc[idx1+1])/2))
+    ibs = sum(ibs0)/(max(t)-min(t))  
+    ibsc = sum(ibsc0)/(max(t)-min(t))
+    BS0_, BSc_, ibs_, ibsc_ = np.round(BS0,4).tolist(), np.round(BSc,4).tolist(), round(ibs,4), round(ibsc,4)
+    result0 = {'t0' : t, 'Reference' : BS0_, 'Brier Score' : BSc_, 'Reference_ibs' : ibs_, 'Integrated Brier Score' : ibsc_}
+    result = pd.DataFrame.from_dict(result0)
+    return result
