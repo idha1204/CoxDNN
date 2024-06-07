@@ -1,0 +1,41 @@
+n=2000  # sample size
+rep = 100 # No.of replications
+for i in range(rep):
+    x1 = np.random.normal(-1, 1, n)
+    x1 = x1.reshape(n,1)
+    x2 = np.random.normal(0, 1, n)
+    x2 = x2.reshape(n,1)
+    x3=np.random.binomial(1, p=0.5, size=n)
+    x3 = x3.reshape(n,1)
+    x4=np.random.uniform(0,1,n)
+    x4 = x4.reshape(n,1)
+    x5 = np.random.normal(0, 1, n)
+    x5 = x5.reshape(n,1)
+    
+    lam = np.exp(-(x1/(x2**2+1))-1.7*np.exp(x2*x3)+0.5*np.sqrt(x4)+1.2*np.sin(x5) )
+
+    phi=2 #Weibull shape parameter
+    u = np.random.uniform(0,1,n)
+    u = u.reshape(n,1)
+    T = (-np.log(u)/lam)**(1/phi)
+    C = np.random.uniform(0, 7.8,n) # censoring 25%
+    C = C.reshape(n,1)
+    y = np.where(T<=C,T,C)
+    delta = np.where(T<=C,1,0)
+
+    y=np.concatenate((y,delta), axis=1)
+    X = np.concatenate((x1,x2,x3,x4,x5), axis=1)
+
+    x_tr, x_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=15)
+    x_tr, x_val, y_tr, y_val = train_test_split(x_tr, y_tr, test_size=0.2, random_state=15)
+   
+    x_tr=x_tr.astype('float32')
+    x_val=x_val.astype('float32')
+    x_te=x_te.astype('float32')
+    y_train_1 = y_tr[:, 0]
+    y_train_2 = y_tr[:, 1]
+    y_train = (y_train_1, y_train_2)
+    y_val_1 = y_val[:, 0]
+    y_val_2 = y_val[:, 1]
+    y_val = (y_val_1, y_val_2)
+    val = x_val, y_val
