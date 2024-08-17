@@ -5,4 +5,4 @@ The fitting procedure is below.
 2) Fit Cox-based DNN models using "Cox-DNN" and "DeepSurv".
 3) In particular, to fit "Cox-DNN" and calculate the Brier Score,
    two new functions need to be specified: the "Breslow loss function" and the "Brier Score".
-   Note that the Cox-based loss function is not available as a built-in function in tf.keras.
+   Note that Cox-based loss functions, such as "Breslow loss function", are not available as built-in functions in tf.keras.
